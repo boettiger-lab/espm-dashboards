@@ -1,0 +1,844 @@
+<title>ESPM Teaching Statistics</title>
+
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1: #fcfcfb;
+    --plane: #f9f9f7;
+    --ink-1: #0b0b0b;
+    --ink-2: #52514e;
+    --ink-muted: #898781;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --border: rgba(11, 11, 11, 0.10);
+    --accent: #2a78d6;
+    --deemph: #898781;
+    --deemph-soft: #dedcd4;
+    --warn: #fab219;
+    --crit: #d03b3b;
+    --good: #006300;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --surface-1: #1a1a19;
+      --plane: #0d0d0d;
+      --ink-1: #ffffff;
+      --ink-2: #c3c2b7;
+      --ink-muted: #898781;
+      --grid: #2c2c2a;
+      --axis: #383835;
+      --border: rgba(255, 255, 255, 0.10);
+      --accent: #3987e5;
+      --deemph: #898781;
+      --deemph-soft: #383835;
+      --good: #0ca30c;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1: #1a1a19;
+    --plane: #0d0d0d;
+    --ink-1: #ffffff;
+    --ink-2: #c3c2b7;
+    --ink-muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --accent: #3987e5;
+    --deemph: #898781;
+    --deemph-soft: #383835;
+    --good: #0ca30c;
+  }
+
+  body {
+    background: var(--plane);
+    color: var(--ink-1);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+    margin: 0;
+    padding: 28px 20px 64px;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+  h1 { font-size: 25px; line-height: 1.25; margin: 0 0 6px; letter-spacing: -0.01em; }
+  h2 { font-size: 17px; margin: 32px 0 4px; letter-spacing: -0.005em; }
+  .sub { color: var(--ink-2); margin: 0 0 4px; }
+  .meta { color: var(--ink-muted); font-size: 13px; margin: 0; }
+  a { color: var(--accent); }
+
+  .panel {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+
+  /* ---- filters: one row above the charts ---- */
+  .filters {
+    display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: flex-end;
+  }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field > label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--ink-muted); font-weight: 600;
+  }
+  select, input[type="number"] {
+    font: inherit; font-size: 14px; color: var(--ink-1);
+    background: var(--plane); border: 1px solid var(--axis);
+    border-radius: 6px; padding: 5px 8px; min-width: 128px;
+  }
+  .checks { display: flex; flex-direction: column; gap: 5px; }
+  .checks label {
+    display: flex; align-items: center; gap: 7px; font-size: 14px; color: var(--ink-2);
+  }
+  input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; }
+  button {
+    font: inherit; font-size: 13px; color: var(--ink-1); background: var(--plane);
+    border: 1px solid var(--axis); border-radius: 6px; padding: 6px 11px; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  .preset-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+  /* ---- stat tiles ---- */
+  .tiles { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
+  .tile {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 16px; min-width: 132px; flex: 1 1 132px;
+  }
+  .tile .k {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--ink-muted); font-weight: 600;
+  }
+  .tile .v { font-size: 27px; line-height: 1.15; margin-top: 3px; }
+  .tile .n { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+  .hero { font-size: 46px; line-height: 1.05; letter-spacing: -0.02em; }
+
+  /* ---- chart ---- */
+  .chartwrap { overflow-x: auto; }
+  svg { display: block; max-width: 100%; height: auto; }
+  .gridline { stroke: var(--grid); stroke-width: 1; }
+  .axisline { stroke: var(--axis); stroke-width: 1; }
+  .tick { fill: var(--ink-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .catlabel { fill: var(--ink-2); font-size: 12px; }
+  .catlabel.on { fill: var(--ink-1); font-weight: 600; }
+  .vlabel { fill: var(--ink-2); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .vlabel.on { fill: var(--ink-1); font-weight: 600; }
+  .bar { fill: var(--deemph); }
+  .bar.on { fill: var(--accent); }
+  .hit { fill: transparent; cursor: default; }
+  .row:hover .bar { filter: brightness(1.08); }
+
+  /* ---- table ---- */
+  .tablewrap { overflow-x: auto; margin-top: 6px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--grid); }
+  th {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--ink-muted); font-weight: 600; white-space: nowrap;
+  }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.on td { background: color-mix(in oklab, var(--accent) 11%, transparent); font-weight: 600; }
+  td.terms { color: var(--ink-2); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .why { color: var(--ink-2); font-size: 12.5px; }
+  .pill {
+    display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px;
+    border: 1px solid var(--axis); color: var(--ink-2); white-space: nowrap;
+  }
+
+  /* ---- tooltip ---- */
+  #tip {
+    position: fixed; pointer-events: none; opacity: 0; transition: opacity .09s;
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 11px; font-size: 13px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, .17); max-width: 280px; z-index: 40;
+  }
+  #tip .tv { font-size: 17px; font-weight: 600; }
+  #tip .tl { color: var(--ink-2); font-size: 12.5px; }
+  #tip .tr { display: flex; align-items: center; gap: 7px; margin-top: 3px; }
+  #tip .key { width: 13px; height: 2px; background: var(--accent); border-radius: 2px; }
+
+  /* keyboard focus must be visible on every control */
+  select:focus-visible, input:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #tip { transition: none; }
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  details { margin-top: 10px; }
+  summary { cursor: pointer; color: var(--ink-2); font-size: 14px; }
+  .note {
+    border-left: 3px solid var(--axis); padding: 2px 0 2px 12px;
+    color: var(--ink-2); font-size: 13.5px; margin: 12px 0;
+  }
+  code {
+    background: var(--plane); border: 1px solid var(--border); border-radius: 4px;
+    padding: 0 4px; font-size: 12.5px;
+  }
+  .empty { color: var(--ink-2); padding: 18px 0; }
+</style>
+
+<div class="wrap">
+  <h1>ESPM teaching statistics</h1>
+  <p class="sub">Course enrollments for any review window, with the comparison set
+     filtered the way merit review actually reads it.</p>
+  <p class="meta" id="provenance"></p>
+
+  <div class="panel">
+    <div class="filters">
+      <div class="field">
+        <label for="f-from">From term</label>
+        <select id="f-from"></select>
+      </div>
+      <div class="field">
+        <label for="f-to">To term</label>
+        <select id="f-to"></select>
+      </div>
+      <div class="field">
+        <label for="f-career">Level</label>
+        <select id="f-career">
+          <option value="UGRD">Undergraduate</option>
+          <option value="GRAD">Graduate</option>
+          <option value="ALL">Both</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-div">Division</label>
+        <select id="f-div">
+          <option value="any">Any</option>
+          <option value="lower-division">Lower division</option>
+          <option value="upper-division">Upper division</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-units">Units</label>
+        <select id="f-units"><option value="any">Any</option></select>
+      </div>
+      <div class="field">
+        <label for="f-metric">Rank by</label>
+        <select id="f-metric">
+          <option value="mean">Mean enrollment / offering</option>
+          <option value="total">Total students taught</option>
+          <option value="sch">Mean student credit hours</option>
+          <option value="peak">Largest single term</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-minoff">Min. offerings</label>
+        <input type="number" id="f-minoff" min="1" max="8" value="2">
+      </div>
+      <div class="field">
+        <label for="f-person">Highlight</label>
+        <select id="f-person"></select>
+      </div>
+      <div class="checks">
+        <label><input type="checkbox" id="f-senate" checked> Senate faculty only</label>
+        <label><input type="checkbox" id="f-solo" checked> Exclude co-taught offerings</label>
+      </div>
+    </div>
+    <div class="preset-row">
+      <button data-preset="3yr">Last 3 years (6 semesters)</button>
+      <button data-preset="2yr">Last 2 years</button>
+      <button data-preset="all">All available terms</button>
+    </div>
+  </div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <h2 id="chart-title">Ranking</h2>
+  <p class="meta" id="chart-sub"></p>
+  <div class="panel chartwrap"><svg id="chart" role="img"></svg></div>
+
+  <h2>Enrollment by term</h2>
+  <p class="meta" id="trend-sub"></p>
+  <div class="panel chartwrap"><svg id="trend" role="img"></svg></div>
+
+  <h2>Table view</h2>
+  <p class="meta">Every value in the charts, reachable without hovering.</p>
+  <div class="panel tablewrap"><table id="tbl"></table></div>
+
+  <h2>Excluded offerings</h2>
+  <p class="meta">What the filters removed, and why — so the comparison set is auditable.</p>
+  <div class="panel tablewrap"><table id="excl"></table></div>
+
+  <details>
+    <summary>Method, sources, and caveats</summary>
+    <div class="note">
+      <p><strong>Sources.</strong> Course and enrollment data come from the Berkeleytime
+      GraphQL API, which mirrors Berkeley's SIS Course/Class APIs. Every enrollment figure
+      and every instructor list is then re-scraped from the official UCB Class Schedule
+      (<code>classes.berkeley.edu</code>), and the official figure is the one used —
+      Berkeleytime's instructor lists are incomplete. Appointments come from the ESPM
+      departmental directory.</p>
+      <p><strong>Co-teaching is judged per offering</strong> — two or more instructors of
+      record in the same term. Different instructors in different years is not co-teaching
+      and excludes nothing.</p>
+      <p><strong>Graduate students are removed from instructor lists</strong> before
+      anything else, because Berkeley's schedule lists GSIs in the same field as faculty.</p>
+      <p><strong>Senate faculty</strong> means the Academic Senate professorial series,
+      including the Professor of Teaching (LSOE) series. It excludes lecturers, adjunct
+      professors, emeriti, Professors of the Graduate School (a post-retirement title),
+      Cooperative Extension appointments, and anyone the directory does not list.</p>
+      <p><strong>Filtering is per offering, not per course</strong> — a course keeps its
+      qualifying terms even if another term was taught by someone outside the set.</p>
+      <p><strong>“Not in ESPM faculty directory” usually means another department,</strong>
+      not “not a professor.” Cross-listed courses are often taught from Integrative Biology,
+      Geography, Civil Engineering or elsewhere, and those instructors are absent from the
+      ESPM listing. They are excluded from the Senate set here because this tool can only
+      verify ESPM appointments — treat it as unverified, not as a judgment. Names can be
+      pinned by hand in <code>aliases.json</code>; see the README.</p>
+      <p><strong>Umbrella course numbers are excluded entirely</strong> (98, 99, 197–199,
+      290, 296–302, 375, 376, 400, 601, 602, Berkeley Connect, 150, 194A). These carry many
+      unrelated sections under one number at varying units, so aggregating them is
+      meaningless.</p>
+      <p><strong>Cross-listed courses undercount.</strong> C- and H-prefixed courses record
+      only students who registered under the ESPM subject code, so their true sizes are
+      larger. They are marked in the table.</p>
+      <p><strong>Terms still enrolling</strong> report partial numbers. Catalog coverage
+      begins Fall 2019.</p>
+    </div>
+  </details>
+</div>
+
+<div id="tip" role="status" aria-live="polite"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+
+const NOT_SENATE_LABEL = {
+  "lecturer": "lecturer",
+  "adjunct": "adjunct professor",
+  "emeritus": "emeritus / Professor of the Graduate School",
+  "cooperative-extension": "Cooperative Extension series",
+  "staff": "staff appointment",
+  "unknown": "not in ESPM faculty directory",
+  "graduate-student": "graduate student",
+  "postdoc": "postdoctoral researcher"
+};
+
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString();
+const one = n => (Math.round(n * 10) / 10).toFixed(1);
+
+/* ---------- populate controls ---------- */
+const terms = DATA.terms.slice().sort((a, b) => a.sort - b.sort);
+function fillTerms() {
+  for (const sel of [$("f-from"), $("f-to")]) {
+    sel.textContent = "";
+    for (const t of terms) {
+      const o = document.createElement("option");
+      o.value = String(t.sort);
+      o.textContent = t.term + (t.complete ? "" : "  (in progress)");
+      sel.appendChild(o);
+    }
+  }
+}
+fillTerms();
+
+/* The most recent term whose instruction has finished. Fixed-length presets end here:
+   a term still enrolling reports partial numbers and would understate a recent course. */
+const lastComplete = (() => {
+  for (let i = terms.length - 1; i >= 0; i--) if (terms[i].complete) return i;
+  return terms.length - 1;
+})();
+
+const unitVals = [...new Set(Object.values(DATA.courses)
+  .map(c => c.units).filter(u => u !== null))].sort((a, b) => a - b);
+for (const u of unitVals) {
+  const o = document.createElement("option");
+  o.value = String(u);
+  o.textContent = u + " unit" + (u === 1 ? "" : "s");
+  $("f-units").appendChild(o);
+}
+
+/* instructors of record, most-taught first, for the highlight picker */
+const taughtBy = new Map();
+for (const o of DATA.offerings) {
+  for (const n of o.instructors_of_record) {
+    taughtBy.set(n, (taughtBy.get(n) || 0) + 1);
+  }
+}
+const people = [...taughtBy.keys()].sort((a, b) =>
+  a.split(" ").pop().localeCompare(b.split(" ").pop()));
+{
+  const none = document.createElement("option");
+  none.value = "";
+  none.textContent = "— nobody —";
+  $("f-person").appendChild(none);
+  for (const n of people) {
+    const o = document.createElement("option");
+    o.value = n;
+    o.textContent = n + "  (" + DATA.people[n].appointment + ")";
+    $("f-person").appendChild(o);
+  }
+}
+
+function applyPreset(which) {
+  const all = which === "all";
+  const endIdx = all ? terms.length - 1 : lastComplete;
+  const n = which === "3yr" ? 6 : which === "2yr" ? 4 : terms.length;
+  const startIdx = Math.max(0, endIdx - n + 1);
+  $("f-from").value = String(terms[startIdx].sort);
+  $("f-to").value = String(terms[endIdx].sort);
+  render();
+}
+
+/* ---------- core computation ---------- */
+function compute() {
+  const from = +$("f-from").value, to = +$("f-to").value;
+  const career = $("f-career").value;
+  const div = $("f-div").value;
+  const unitF = $("f-units").value;
+  const senateOnly = $("f-senate").checked;
+  const soloOnly = $("f-solo").checked;
+  const minOff = Math.max(1, +$("f-minoff").value || 1);
+
+  const kept = new Map(), dropped = new Map();
+  for (const o of DATA.offerings) {
+    if (o.sort < from || o.sort > to) continue;
+    const c = DATA.courses[o.course];
+    if (!c || c.umbrella) continue;
+    if (career !== "ALL" && c.career !== career) continue;
+    if (div !== "any" && c.level !== div) continue;
+    if (unitF !== "any" && c.units !== +unitF) continue;
+
+    let why = null;
+    if (o.instructors_of_record.length === 0) {
+      why = "no instructor of record listed";
+    } else if (soloOnly && o.co_taught) {
+      why = "co-taught (" + o.instructors_of_record.length + " instructors of record)";
+    } else if (senateOnly) {
+      const bad = o.appointments.filter(a => a !== "senate");
+      if (bad.length) {
+        why = bad.map(a => NOT_SENATE_LABEL[a] || a).join(", ");
+      }
+    }
+    const bucket = why ? dropped : kept;
+    if (!bucket.has(o.course)) bucket.set(o.course, []);
+    bucket.get(o.course).push(why ? Object.assign({ why }, o) : o);
+  }
+
+  const rows = [];
+  for (const [course, offs] of kept) {
+    if (offs.length < minOff) continue;
+    const c = DATA.courses[course];
+    const total = offs.reduce((s, o) => s + o.enrolled, 0);
+    const mean = total / offs.length;
+    const peak = Math.max(...offs.map(o => o.enrolled));
+    rows.push({
+      course, meta: c, offs: offs.slice().sort((a, b) => a.sort - b.sort),
+      n: offs.length, total, mean, peak,
+      sch: c.units ? mean * c.units : null,
+      instructors: [...new Set(offs.flatMap(o => o.instructors_of_record))].sort()
+    });
+  }
+  const metric = $("f-metric").value;
+  const val = r => metric === "mean" ? r.mean : metric === "total" ? r.total
+    : metric === "peak" ? r.peak : (r.sch === null ? -1 : r.sch);
+  rows.sort((a, b) => val(b) - val(a) || a.course.localeCompare(b.course));
+  rows.forEach((r, i) => { r.rank = i + 1; r.value = val(r); });
+
+  const belowMin = [];
+  for (const [course, offs] of kept) {
+    if (offs.length < minOff) {
+      belowMin.push({ course, offs, n: offs.length });
+    }
+  }
+  return { rows, dropped, belowMin, metric };
+}
+
+const METRIC_LABEL = {
+  mean: "Mean enrollment per offering",
+  total: "Total students taught",
+  sch: "Mean student credit hours per offering",
+  peak: "Largest single-term enrollment"
+};
+
+/* ---------- tooltip ---------- */
+const tip = $("tip");
+function showTip(evt, lines) {
+  tip.textContent = "";
+  const v = document.createElement("div");
+  v.className = "tv";
+  v.textContent = lines[0];
+  tip.appendChild(v);
+  for (const l of lines.slice(1)) {
+    const d = document.createElement("div");
+    d.className = "tl";
+    d.textContent = l;
+    tip.appendChild(d);
+  }
+  tip.style.opacity = "1";
+  const pad = 14, w = 280;
+  let x = evt.clientX + pad, y = evt.clientY + pad;
+  if (x + w > window.innerWidth) x = evt.clientX - w - pad;
+  if (y + 110 > window.innerHeight) y = evt.clientY - 110;
+  tip.style.left = Math.max(4, x) + "px";
+  tip.style.top = Math.max(4, y) + "px";
+}
+const hideTip = () => { tip.style.opacity = "0"; };
+
+/* ---------- SVG helpers ---------- */
+const NS = "http://www.w3.org/2000/svg";
+function el(name, attrs, parent) {
+  const n = document.createElementNS(NS, name);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+function text(x, y, str, cls, parent, anchor) {
+  const t = el("text", { x, y, class: cls }, parent);
+  if (anchor) t.setAttribute("text-anchor", anchor);
+  t.textContent = str;
+  return t;
+}
+function ticks(max) {
+  if (max <= 0) return [0];
+  const raw = max / 4;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw) || mag * 10;
+  const out = [];
+  for (let v = 0; v <= max + step * 0.001; v += step) out.push(Math.round(v));
+  return out;
+}
+
+/* Horizontal bars, emphasis form: highlighted entity in accent, everything else gray. */
+function drawRanking(state, person) {
+  const svg = $("chart");
+  svg.textContent = "";
+  const rows = state.rows;
+  if (!rows.length) {
+    svg.setAttribute("viewBox", "0 0 600 60");
+    text(0, 32, "No courses match these filters.", "catlabel", svg);
+    return;
+  }
+  const LEFT = 210, RIGHT = 62, TOP = 26, BAND = 27, BAR = 15;
+  const W = 900, H = TOP + rows.length * BAND + 20;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("width", W);
+  const plotW = W - LEFT - RIGHT;
+  const max = Math.max(...rows.map(r => r.value));
+  const tv = ticks(max);
+  const x = v => LEFT + (max ? (v / max) * plotW : 0);
+
+  for (const t of tv) {
+    el("line", { x1: x(t), y1: TOP - 8, x2: x(t), y2: H - 22, class: "gridline" }, svg);
+    text(x(t), H - 8, fmt(t), "tick", svg, "middle");
+  }
+  el("line", { x1: LEFT, y1: TOP - 8, x2: LEFT, y2: H - 22, class: "axisline" }, svg);
+
+  rows.forEach((r, i) => {
+    const isOn = person && r.instructors.includes(person);
+    const y = TOP + i * BAND;
+    const g = el("g", { class: "row" }, svg);
+    const label = `${r.rank}. ESPM ${r.course}`;
+    text(LEFT - 10, y + BAR - 3, label, "catlabel" + (isOn ? " on" : ""), g, "end");
+    const w = Math.max(0, x(r.value) - LEFT);
+    // 4px rounded data-end, square at the baseline
+    const rx = Math.min(4, w / 2);
+    const p = el("path", {
+      class: "bar" + (isOn ? " on" : ""),
+      d: w <= rx ? `M${LEFT},${y}h${w}v${BAR}h${-w}z`
+        : `M${LEFT},${y}h${w - rx}a${rx},${rx} 0 0 1 ${rx},${rx}v${BAR - 2 * rx}` +
+          `a${rx},${rx} 0 0 1 ${-rx},${rx}h${-(w - rx)}z`
+    }, g);
+    void p;
+    text(x(r.value) + 7, y + BAR - 3, one(r.value), "vlabel" + (isOn ? " on" : ""), g);
+    const hit = el("rect", {
+      class: "hit", x: LEFT, y: y - 5, width: plotW, height: BAND
+    }, g);
+    const lines = [
+      one(r.value) + "  " + METRIC_LABEL[state.metric].toLowerCase(),
+      "ESPM " + r.course + (r.meta.title ? " — " + r.meta.title : ""),
+      r.instructors.join(", "),
+      `${r.n} offering${r.n === 1 ? "" : "s"} · ${fmt(r.total)} students total` +
+        (r.meta.units ? ` · ${r.meta.units} units` : ""),
+      r.offs.map(o => o.term.replace(" 20", " ") + "=" + o.enrolled).join(", ")
+    ];
+    hit.addEventListener("pointermove", e => showTip(e, lines));
+    hit.addEventListener("pointerleave", hideTip);
+  });
+}
+
+/* Line chart: enrollment by term for the highlighted person's courses, or the top course. */
+function drawTrend(state, person) {
+  const svg = $("trend");
+  svg.textContent = "";
+  const rows = state.rows;
+  let series = null;
+  if (person) {
+    const mine = rows.filter(r => r.instructors.includes(person));
+    if (mine.length) {
+      series = { name: person, offs: mine.flatMap(r => r.offs.map(o =>
+        Object.assign({ course: r.course }, o))) };
+    }
+  }
+  if (!series && rows.length) {
+    series = { name: "ESPM " + rows[0].course,
+      offs: rows[0].offs.map(o => Object.assign({ course: rows[0].course }, o)) };
+  }
+  if (!series || !series.offs.length) {
+    svg.setAttribute("viewBox", "0 0 600 60");
+    text(0, 32, "Nothing to plot for this selection.", "catlabel", svg);
+    $("trend-sub").textContent = "";
+    return;
+  }
+  const byTerm = new Map();
+  for (const o of series.offs) {
+    const cur = byTerm.get(o.sort) || { sort: o.sort, term: o.term, enrolled: 0, courses: [] };
+    cur.enrolled += o.enrolled;
+    cur.courses.push("ESPM " + o.course);
+    byTerm.set(o.sort, cur);
+  }
+  const pts = [...byTerm.values()].sort((a, b) => a.sort - b.sort);
+  $("trend-sub").textContent = person
+    ? `Enrollment per term across ${person}'s qualifying courses in this window.`
+    : `Enrollment per term for the top-ranked course, ESPM ${rows[0].course}.`;
+
+  const LEFT = 46, RIGHT = 54, TOP = 22, BOT = 42;
+  const W = 900, H = 250;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("width", W);
+  const plotW = W - LEFT - RIGHT, plotH = H - TOP - BOT;
+  const max = Math.max(...pts.map(p => p.enrolled));
+  const tv = ticks(max);
+  const top = tv[tv.length - 1] || 1;
+  const X = i => pts.length === 1 ? LEFT + plotW / 2
+    : LEFT + (i / (pts.length - 1)) * plotW;
+  const Y = v => TOP + plotH - (v / top) * plotH;
+
+  for (const t of tv) {
+    el("line", { x1: LEFT, y1: Y(t), x2: LEFT + plotW, y2: Y(t), class: "gridline" }, svg);
+    text(LEFT - 8, Y(t) + 4, fmt(t), "tick", svg, "end");
+  }
+  el("line", { x1: LEFT, y1: Y(0), x2: LEFT + plotW, y2: Y(0), class: "axisline" }, svg);
+
+  if (pts.length > 1) {
+    el("path", {
+      d: pts.map((p, i) => (i ? "L" : "M") + X(i) + "," + Y(p.enrolled)).join(""),
+      fill: "none", stroke: "var(--accent)", "stroke-width": 2,
+      "stroke-linejoin": "round", "stroke-linecap": "round"
+    }, svg);
+  }
+  pts.forEach((p, i) => {
+    el("circle", { cx: X(i), cy: Y(p.enrolled), r: 5, fill: "var(--accent)",
+      stroke: "var(--surface-1)", "stroke-width": 2 }, svg);
+    text(X(i), H - BOT + 20, p.term.replace(" 20", " '"), "tick", svg, "middle");
+    const hit = el("rect", { class: "hit", x: X(i) - 22, y: TOP - 10,
+      width: 44, height: plotH + 20 }, svg);
+    const lines = [fmt(p.enrolled) + " students", p.term, p.courses.join(", ")];
+    hit.addEventListener("pointermove", e => showTip(e, lines));
+    hit.addEventListener("pointerleave", hideTip);
+  });
+  // label only the endpoint
+  const lastI = pts.length - 1;
+  text(X(lastI) + 10, Y(pts[lastI].enrolled) + 4, fmt(pts[lastI].enrolled), "vlabel on", svg);
+}
+
+/* ---------- tiles ---------- */
+function drawTiles(state, person) {
+  const box = $("tiles");
+  box.textContent = "";
+  const add = (k, v, n, hero) => {
+    const d = document.createElement("div");
+    d.className = "tile";
+    const kk = document.createElement("div"); kk.className = "k"; kk.textContent = k;
+    const vv = document.createElement("div");
+    vv.className = "v" + (hero ? " hero" : ""); vv.textContent = v;
+    d.appendChild(kk); d.appendChild(vv);
+    if (n) { const nn = document.createElement("div"); nn.className = "n"; nn.textContent = n; d.appendChild(nn); }
+    box.appendChild(d);
+  };
+  const mine = person ? state.rows.filter(r => r.instructors.includes(person)) : [];
+  if (mine.length) {
+    const best = mine[0];
+    add("Rank", best.rank + " of " + state.rows.length,
+      "ESPM " + best.course, true);
+    add(METRIC_LABEL[state.metric], one(best.value),
+      best.n + " offering" + (best.n === 1 ? "" : "s"));
+    add("Students taught", fmt(mine.reduce((s, r) => s + r.total, 0)),
+      mine.length > 1 ? "across " + mine.length + " courses" : "in this window");
+    if (best.meta.units) {
+      add("Units", String(best.meta.units),
+        "SCH/offering " + (best.sch === null ? "—" : one(best.sch)));
+    }
+    if (mine.length > 1) {
+      add("Other courses", mine.slice(1).map(r => "ESPM " + r.course).join(", "),
+        "ranks " + mine.slice(1).map(r => r.rank).join(", "));
+    }
+  } else {
+    add("Courses in set", String(state.rows.length),
+      person ? "none taught by " + person : "pick someone to highlight", true);
+    if (state.rows.length) {
+      add("Largest", "ESPM " + state.rows[0].course, one(state.rows[0].value) + " " +
+        METRIC_LABEL[state.metric].toLowerCase());
+    }
+    add("Excluded offerings",
+      String([...state.dropped.values()].reduce((s, v) => s + v.length, 0)),
+      "see audit table");
+  }
+}
+
+/* ---------- tables ---------- */
+function drawTable(state, person) {
+  const t = $("tbl");
+  t.textContent = "";
+  const head = ["#", "Course", "Title", "Units", "Mean", "Total", "SCH", "Off.",
+    "Enrollment by term", "Instructor(s)"];
+  const tr = document.createElement("tr");
+  head.forEach((h, i) => {
+    const th = document.createElement("th");
+    if ([0, 3, 4, 5, 6, 7].includes(i)) th.className = "num";
+    th.textContent = h;
+    tr.appendChild(th);
+  });
+  const thead = document.createElement("thead"); thead.appendChild(tr); t.appendChild(thead);
+  const tb = document.createElement("tbody");
+  for (const r of state.rows) {
+    const row = document.createElement("tr");
+    if (person && r.instructors.includes(person)) row.className = "on";
+    const cells = [
+      [String(r.rank), "num"],
+      ["ESPM " + r.course + (r.meta.cross_listed ? " *" : ""), ""],
+      [r.meta.title || "", ""],
+      [r.meta.units === null ? "var" : String(r.meta.units), "num"],
+      [one(r.mean), "num"],
+      [fmt(r.total), "num"],
+      [r.sch === null ? "—" : one(r.sch), "num"],
+      [String(r.n), "num"],
+      [r.offs.map(o => o.term.replace(" 20", " '") + "=" + o.enrolled).join(", "), "terms"],
+      [r.instructors.join(", "), ""]
+    ];
+    for (const [v, cls] of cells) {
+      const td = document.createElement("td");
+      if (cls) td.className = cls;
+      td.textContent = v;
+      row.appendChild(td);
+    }
+    tb.appendChild(row);
+  }
+  t.appendChild(tb);
+  if (state.rows.some(r => r.meta.cross_listed)) {
+    const cap = document.createElement("caption");
+    cap.style.captionSide = "bottom";
+    cap.style.textAlign = "left";
+    cap.style.color = "var(--ink-muted)";
+    cap.style.fontSize = "12px";
+    cap.style.paddingTop = "8px";
+    cap.textContent = "* cross-listed — counts only students registered under the ESPM subject code, so the true size is larger.";
+    t.appendChild(cap);
+  }
+}
+
+function drawExcluded(state) {
+  const t = $("excl");
+  t.textContent = "";
+  const rows = [];
+  for (const [course, offs] of state.dropped) {
+    for (const o of offs) {
+      rows.push({ course, term: o.term, sort: o.sort, enrolled: o.enrolled,
+        who: o.listed_instructors.join(", "), why: o.why });
+    }
+  }
+  for (const b of state.belowMin) {
+    for (const o of b.offs) {
+      rows.push({ course: b.course, term: o.term, sort: o.sort, enrolled: o.enrolled,
+        who: o.instructors_of_record.join(", "),
+        why: `only ${b.n} qualifying offering${b.n === 1 ? "" : "s"} (below the minimum)` });
+    }
+  }
+  rows.sort((a, b) => b.enrolled - a.enrolled);
+  if (!rows.length) {
+    const p = document.createElement("caption");
+    p.style.captionSide = "top";
+    p.style.textAlign = "left";
+    p.style.color = "var(--ink-2)";
+    p.textContent = "Nothing excluded by the current filters.";
+    t.appendChild(p);
+    return;
+  }
+  const tr = document.createElement("tr");
+  ["Course", "Term", "Enrolled", "Listed instructor(s)", "Reason excluded"]
+    .forEach((h, i) => {
+      const th = document.createElement("th");
+      if (i === 2) th.className = "num";
+      th.textContent = h;
+      tr.appendChild(th);
+    });
+  const thead = document.createElement("thead"); thead.appendChild(tr); t.appendChild(thead);
+  const tb = document.createElement("tbody");
+  for (const r of rows.slice(0, 60)) {
+    const row = document.createElement("tr");
+    [["ESPM " + r.course, ""], [r.term, ""], [fmt(r.enrolled), "num"],
+     [r.who, ""], [r.why, "why"]].forEach(([v, cls]) => {
+      const td = document.createElement("td");
+      if (cls) td.className = cls;
+      td.textContent = v;
+      row.appendChild(td);
+    });
+    tb.appendChild(row);
+  }
+  t.appendChild(tb);
+  if (rows.length > 60) {
+    const cap = document.createElement("caption");
+    cap.style.captionSide = "bottom";
+    cap.style.textAlign = "left";
+    cap.style.color = "var(--ink-muted)";
+    cap.style.fontSize = "12px";
+    cap.style.paddingTop = "8px";
+    cap.textContent = `Showing the 60 largest of ${rows.length} excluded offerings.`;
+    t.appendChild(cap);
+  }
+}
+
+/* ---------- render ---------- */
+function render() {
+  const from = +$("f-from").value, to = +$("f-to").value;
+  if (from > to) { $("f-to").value = String(from); }
+  const person = $("f-person").value || null;
+  const state = compute();
+  const fromT = terms.find(t => t.sort === +$("f-from").value);
+  const toT = terms.find(t => t.sort === +$("f-to").value);
+  const bits = [];
+  bits.push($("f-career").value === "ALL" ? "All courses"
+    : $("f-career").value === "GRAD" ? "Graduate courses" : "Undergraduate courses");
+  if ($("f-div").value !== "any") bits.push($("f-div").value);
+  if ($("f-units").value !== "any") bits.push($("f-units").value + "-unit");
+  if ($("f-senate").checked) bits.push("Senate faculty only");
+  if ($("f-solo").checked) bits.push("solo-taught offerings only");
+  bits.push("≥" + $("f-minoff").value + " offering" + (+$("f-minoff").value === 1 ? "" : "s"));
+
+  const partial = terms.filter(t => t.sort >= from && t.sort <= to && !t.complete);
+  $("chart-title").textContent = METRIC_LABEL[state.metric];
+  $("chart-sub").textContent = `${fromT.term} – ${toT.term}. ` + bits.join(" · ") +
+    `. ${state.rows.length} course${state.rows.length === 1 ? "" : "s"} qualify.` +
+    (partial.length
+      ? `  ⚠ ${partial.map(t => t.term).join(", ")} ${partial.length === 1 ? "has" : "have"}` +
+        ` not finished — enrollment is partial and means are understated.`
+      : "");
+
+  drawTiles(state, person);
+  drawRanking(state, person);
+  drawTrend(state, person);
+  drawTable(state, person);
+  drawExcluded(state);
+}
+
+for (const id of ["f-from", "f-to", "f-career", "f-div", "f-units", "f-metric",
+                  "f-minoff", "f-person", "f-senate", "f-solo"]) {
+  $(id).addEventListener("change", render);
+  $(id).addEventListener("input", render);
+}
+for (const b of document.querySelectorAll("[data-preset]")) {
+  b.addEventListener("click", () => applyPreset(b.dataset.preset));
+}
+
+$("provenance").textContent =
+  `${DATA.offerings.length} course-offerings across ${terms.length} terms, ` +
+  `${Object.keys(DATA.courses).length} courses. Enrollment and instructors verified ` +
+  `against classes.berkeley.edu. Data built ${DATA.generated}.`;
+
+applyPreset("3yr");
+</script>

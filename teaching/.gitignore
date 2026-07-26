@@ -1,0 +1,16 @@
+# Generated. Build them yourself: python3 build_data.py
+# Deliberately not committed: the built dashboard bakes in a ranking of named
+# colleagues with their appointments attached. The inputs are all public, but the
+# assembled view is yours to generate and decide who sees.
+dashboard.html
+dashboard.fragment.html
+espm_data.json
+
+# Regenerable caches (--skip-harvest / --skip-scrape reuse them)
+raw_catalog.json
+scraped.json
+directory.json
+build.log
+
+# Optional local overrides for names the directory match can't resolve
+aliases.json
