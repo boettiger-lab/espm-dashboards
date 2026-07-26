@@ -61,27 +61,46 @@ CATALOG_QUERY = """query($y:Int!,$s:Semester!,$p:Int!){
 }""" % SUBJECT
 
 
-def curl(url, post=None, timeout=60):
-    cmd = ["curl", "-sL", "-m", str(timeout)]
+# Identify the tool so site admins can see who is fetching and why. Some hosts also
+# reject requests with no User-Agent outright.
+USER_AGENT = ("espm-dashboards/1.0 "
+              "(+https://github.com/boettiger-lab/espm-dashboards)")
+
+
+def curl(url, post=None, timeout=60, want_status=False):
+    """Fetch a URL. With want_status, return (status_code, body) instead of just body."""
+    cmd = ["curl", "-sL", "-m", str(timeout), "-A", USER_AGENT]
+    if want_status:
+        cmd += ["-w", "\n%{http_code}"]
     if post is not None:
         cmd += ["-X", "POST", "-H", "Content-Type: application/json", "-d", post]
     cmd.append(url)
-    return subprocess.run(cmd, capture_output=True, text=True).stdout
+    out = subprocess.run(cmd, capture_output=True, text=True).stdout
+    if not want_status:
+        return out
+    body, _, status = out.rpartition("\n")
+    return (status.strip() or "000"), body
 
 
 def gql(year, semester, page):
     body = json.dumps({"query": CATALOG_QUERY,
                        "variables": {"y": year, "s": semester, "p": page}})
-    raw = curl(GRAPHQL, post=body)
+    status, raw = curl(GRAPHQL, post=body, want_status=True)
     try:
         doc = json.loads(raw)
     except json.JSONDecodeError:
+        # Don't swallow this. A blocked request, a WAF interstitial or an outage all
+        # land here, and reporting the status plus a snippet is the difference between
+        # a diagnosable failure and a silently empty dataset.
+        snippet = " ".join(raw.split())[:300] or "(empty response)"
+        print(f"    {GRAPHQL} returned HTTP {status}, not JSON, for "
+              f"{semester} {year} p{page}: {snippet}", file=sys.stderr)
         return None
     if "errors" in doc:
         print(f"    API error {year} {semester} p{page}: "
               f"{doc['errors'][0].get('message')}", file=sys.stderr)
         return None
-    return doc["data"]["catalogSearch"]
+    return doc.get("data", {}).get("catalogSearch")
 
 
 def harvest_catalog():
@@ -114,6 +133,14 @@ def harvest_catalog():
         seen.add(key)
         deduped.append(r)
     print(f"  harvested {len(rows)} rows, {len(deduped)} after dedupe")
+    if not deduped:
+        sys.exit(
+            "\nHarvest returned nothing, so there is no data to build from.\n"
+            f"Check whether {GRAPHQL} is reachable from this host:\n"
+            f"  curl -s -X POST {GRAPHQL} -H 'Content-Type: application/json' \\\n"
+            "       -d '{\"query\":\"{terms{year semester}}\"}' | head -c 300\n"
+            "The API has been observed to refuse datacenter IP ranges, so a CI runner "
+            "may be blocked where a workstation is not. Errors above give the status.")
     return deduped
 
 
