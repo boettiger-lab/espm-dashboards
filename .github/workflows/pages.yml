@@ -1,0 +1,113 @@
+name: Build and deploy dashboards
+
+# The built dashboards are not committed to this repo (see teaching/.gitignore), so
+# Pages builds them here and publishes the output. Nothing generated re-enters git
+# history; the published site is the only built copy.
+on:
+  workflow_dispatch:
+  schedule:
+    # Mondays 08:00 UTC. Enrollment moves during add/drop, so a weekly refresh keeps
+    # the site current without hammering the source sites.
+    - cron: "0 8 * * 1"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish rather than cancelling it midway.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build the teaching dashboard
+        working-directory: teaching
+        run: python3 build_data.py
+
+      - name: Assemble the site
+        run: |
+          set -euo pipefail
+          mkdir -p _site/teaching
+          # The dashboard is a complete standalone document; serve it as the entry point.
+          cp teaching/dashboard.html _site/teaching/index.html
+          cp teaching/espm_data.json _site/teaching/espm_data.json
+
+          # Landing page. Kept deliberately plain -- the dashboards carry the design.
+          cat > _site/index.html <<'HTML'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>ESPM dashboards</title>
+          <style>
+            :root { color-scheme: light; --bg:#f9f9f7; --fg:#0b0b0b; --dim:#52514e; --accent:#2a78d6; --line:rgba(11,11,11,.12); }
+            @media (prefers-color-scheme: dark) { :root { color-scheme: dark; --bg:#0d0d0d; --fg:#fff; --dim:#c3c2b7; --accent:#3987e5; --line:rgba(255,255,255,.14); } }
+            body { background:var(--bg); color:var(--fg); font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif; margin:0; padding:48px 20px; }
+            main { max-width:44rem; margin:0 auto; }
+            h1 { font-size:26px; margin:0 0 8px; letter-spacing:-.01em; }
+            p { color:var(--dim); }
+            ul { list-style:none; padding:0; display:grid; gap:12px; margin:28px 0; }
+            li a { display:block; padding:16px 18px; border:1px solid var(--line); border-radius:10px; text-decoration:none; color:var(--fg); }
+            li a:hover, li a:focus-visible { border-color:var(--accent); outline:none; }
+            li a span { display:block; color:var(--dim); font-size:14.5px; margin-top:3px; }
+            footer { color:var(--dim); font-size:14px; border-top:1px solid var(--line); padding-top:18px; margin-top:36px; }
+            a { color:var(--accent); }
+          </style>
+          </head>
+          <body>
+          <main>
+            <h1>ESPM dashboards</h1>
+            <p>Dashboards over public UC Berkeley ESPM course data, rebuilt weekly.</p>
+            <ul>
+              <li><a href="teaching/">Teaching statistics
+                <span>Course enrollments over any review window, compared only against
+                courses that are actually comparable.</span></a></li>
+            </ul>
+            <footer>
+              Built from the public class schedule and departmental directory. Enrollment is a
+              crude proxy for teaching and says nothing about course level, pedagogical load,
+              or how a course serves a program. Source and method:
+              <a href="https://github.com/boettiger-lab/espm-dashboards">boettiger-lab/espm-dashboards</a>.
+            </footer>
+          </main>
+          </body>
+          </html>
+          HTML
+
+          # Fail loudly rather than publishing an empty or truncated site.
+          test -s _site/teaching/index.html
+          python3 - <<'PY'
+          import pathlib, sys
+          p = pathlib.Path("_site/teaching/index.html")
+          size = p.stat().st_size
+          text = p.read_text()
+          if size < 100_000 or "/*__DATA__*/null" in text:
+              sys.exit(f"dashboard looks unbuilt: {size} bytes, placeholder present="
+                       f"{'/*__DATA__*/null' in text}")
+          print(f"dashboard OK: {size/1024:.0f} KB")
+          PY
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,5 +1,8 @@
 # espm-dashboards
 
+**Live: <https://boettiger-lab.github.io/espm-dashboards/>** — rebuilt weekly by GitHub
+Actions.
+
 Small, self-contained dashboards over public UC Berkeley ESPM data. Each lives in its own
 subdirectory with a build script and a template; running the script produces one standalone
 HTML file that needs no server and works from `file://`.
@@ -19,10 +22,13 @@ anyone's appointment. The build script gathers everything server-side and bakes 
 HTML. The cost is that output is a snapshot; re-run the script to refresh it. The build date
 is shown in the page header.
 
-**Built output is gitignored, not committed.** These pages assemble public records into views
-that are more pointed than their sources — a ranking of named colleagues, for instance. The
-method is fully open; the assembled artifact is left for whoever builds it to generate and
-decide who sees. Nothing here is secret, and nothing here is published on your behalf.
+**Built output is gitignored, not committed.** `.github/workflows/pages.yml` runs the build
+in CI and publishes the result to GitHub Pages, so nothing generated enters git history — the
+published site is the only built copy, and it is always reproducible from the script. Note
+what that means in practice: these pages assemble public records into views more pointed than
+their sources, including a ranking of named colleagues with their appointments attached. That
+is on the public web at the URL above. Removing the `schedule:` trigger, or the workflow
+entirely, takes the site down without touching the tool.
 
 **Public sources only, at the rate they ask for.** No logins, no student-level records, no
 FERPA-protected data. Each script documents which sites it touches and honours their
@@ -49,5 +55,6 @@ Each subdirectory's README documents its own, but two are general:
 - **Terms still in progress report partial numbers.** The dashboards detect and flag these,
   but check before quoting a mean that includes one.
 
-No license yet — the repos in this org variously use BSD-2, BSD-3, and Apache-2.0, so that
-choice is left open rather than guessed at.
+## License
+
+BSD 3-Clause. See [LICENSE](LICENSE).
