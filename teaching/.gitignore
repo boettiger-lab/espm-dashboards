@@ -14,3 +14,6 @@ build.log
 
 # Optional local overrides for names the directory match can't resolve
 aliases.json
+
+# Assembled by ../publish.sh
+../_site/
